@@ -6,7 +6,6 @@
       :status="status"
       :paused="paused"
       :error="error"
-      :response="response"
       :average-speed="averageSpeed"
       :formated-average-speed="formatedAverageSpeed"
       :current-speed="currentSpeed"
@@ -23,25 +22,53 @@
       :type="type"
       :extension="extension"
       :file-category="fileCategory"
-      >
-      <div class="uploader-file-progress" :class="progressingClass" :style="progressStyle"></div>
-      <div class="uploader-file-info">
-        <div class="uploader-file-name"><i class="uploader-file-icon" :icon="fileCategory"></i>{{file.name}}</div>
-        <div class="uploader-file-size">{{formatedSize}}</div>
-        <div class="uploader-file-meta"></div>
-        <div class="uploader-file-status">
-          <span v-show="status !== 'uploading'">{{statusText}}</span>
-          <span v-show="status === 'uploading'">
-            <span>{{progressStyle.progress}}</span>
-            <em>{{formatedAverageSpeed}}</em>
-            <i>{{formatedTimeRemaining}}</i>
-          </span>
+    >
+      <div class="upload-file-body">
+        <div class="li-img">
+          <i class="uploader-file-icon" :icon="fileCategory"></i>
         </div>
-        <div class="uploader-file-actions">
-          <span class="uploader-file-pause" @click="pause"></span>
-          <span class="uploader-file-resume" @click="resume">️</span>
-          <span class="uploader-file-retry" @click="retry"></span>
-          <span class="uploader-file-remove" @click="remove"></span>
+         <div class="li-icon">
+          <span @click="pause" v-show="showPauseOrResume">暂停</span>
+          <span @click="resume" v-show="!showPauseOrResume">开始</span>
+        </div>
+        <div class="li-content">
+          <div class="content-top">
+            <span class="span-M">{{file.name}}</span>
+          </div>
+          <div class="content-bottom">
+            <span class="span-S">{{formatedCompletedSize}}/{{formatedSize}}</span>
+            <span class="device-space">{{formatedAverageSpeed}}</span>
+          </div>
+        </div>
+       
+      </div>
+      <div v-show="false">
+        <div class="uploader-file-progress" :class="progressingClass" :style="progressStyle"></div>
+        <div class="uploader-file-info">
+          <div class="file-name-body">
+            <div class="uploader-file-name">
+              <i class="uploader-file-icon" :icon="fileCategory"></i>
+              {{file.name}}{{formatedCompletedSize}}
+            </div>
+            <div class="uploader-file-size">{{formatedSize}}</div>
+          </div>
+          <div class="file-content">
+            <div class="uploader-file-meta"></div>
+            <div class="uploader-file-status">
+              <span v-show="status !== 'uploading'">{{statusText}}</span>
+              <span v-show="status === 'uploading'">
+                <span>{{progressStyle.progress}}</span>
+                <em>{{formatedAverageSpeed}}</em>
+                <i>{{formatedTimeRemaining}}</i>
+              </span>
+            </div>
+            <div class="uploader-file-actions">
+              <span class="uploader-file-pause" @click="pause"></span>
+              <span class="uploader-file-resume" @click="resume">️</span>
+              <span class="uploader-file-retry" @click="retry"></span>
+              <span class="uploader-file-remove" @click="remove"></span>
+            </div>
+          </div>
         </div>
       </div>
     </slot>
@@ -51,7 +78,7 @@
 <script>
   import Uploader from 'simple-uploader.js'
   import events from '../common/file-events'
-  import { secondsToStr } from '../common/utils'
+  import {secondsToStr} from '../common/utils'
 
   const COMPONENT_NAME = 'uploader-file'
 
@@ -71,7 +98,6 @@
     },
     data () {
       return {
-        response: null,
         paused: false,
         error: false,
         averageSpeed: 0,
@@ -85,7 +111,8 @@
         timeRemaining: 0,
         type: '',
         extension: '',
-        progressingClass: ''
+        progressingClass: '',
+        showPauseOrResume: true
       }
     },
     computed: {
@@ -122,6 +149,11 @@
       formatedAverageSpeed () {
         return `${Uploader.utils.formatSize(this.averageSpeed)} / s`
       },
+      // 已下载大小
+      formatedCompletedSize () {
+        const size = this.formatedSize.split(' ')
+        return (parseFloat(this.progress) * parseFloat(size[0])).toFixed(2).toString() + size[1]
+      },
       status () {
         const isUploading = this.isUploading
         const isComplete = this.isComplete
@@ -141,14 +173,7 @@
       },
       statusText () {
         const status = this.status
-        const fileStatusText = this.file.uploader.fileStatusText
-        let txt = status
-        if (typeof fileStatusText === 'function') {
-          txt = fileStatusText(status, this.response)
-        } else {
-          txt = fileStatusText[status]
-        }
-        return txt || status
+        return this.file.uploader.fileStatusText[status] || status
       },
       formatedTimeRemaining () {
         const timeRemaining = this.timeRemaining
@@ -186,10 +211,12 @@
         this.file.pause()
         this._actionCheck()
         this._fileProgress()
+        this.showPauseOrResume = true
       },
       resume () {
         this.file.resume()
         this._actionCheck()
+        this.showPauseOrResume = false
       },
       remove () {
         this.file.cancel()
@@ -198,20 +225,12 @@
         this.file.retry()
         this._actionCheck()
       },
-      processResponse (message) {
-        let res = message
-        try {
-          res = JSON.parse(message)
-        } catch (e) {}
-        this.response = res
-      },
       fileEventsHandler (event, args) {
         const rootFile = args[0]
         const file = args[1]
         const target = this.list ? rootFile : file
         if (this.file === target) {
           if (this.list && event === 'fileSuccess') {
-            this.processResponse(args[2])
             return
           }
           this[`_${event}`].apply(this, args)
@@ -225,10 +244,7 @@
         this.uploadedSize = this.file.sizeUploaded()
         this._actionCheck()
       },
-      _fileSuccess (rootFile, file, message) {
-        if (rootFile) {
-          this.processResponse(message)
-        }
+      _fileSuccess () {
         this._fileProgress()
         this.error = false
         this.isComplete = true
@@ -237,9 +253,8 @@
       _fileComplete () {
         this._fileSuccess()
       },
-      _fileError (rootFile, file, message) {
+      _fileError () {
         this._fileProgress()
-        this.processResponse(message)
         this.error = true
         this.isComplete = false
         this.isUploading = false
@@ -305,29 +320,71 @@
 </script>
 
 <style>
+.upload-file-body{
+  width:100%;
+  height: 5rem;
+}
+.li-img {
+  float: left;
+  height: 100%;
+  padding-top: 2rem;
+  width: 2.7rem;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box; /* Firefox */
+  -webkit-box-sizing: border-box; /* Safari */
+}
+
+.li-content {
+  height: 100%;
+  line-height: 2.5rem;
+  margin-left: 2.7rem;
+  margin-right: 2.7rem;
+}
+.li-icon {
+  float: right;
+  height: 100%;
+  line-height: 5rem;
+  width: 2.7rem;
+  text-align: center;
+}
+.span-S {
+  display: -moz-inline-box;
+  display: inline-block;
+  font-size: 0.7rem;
+  width: 7rem;
+}
+.device-space {
+  font-size: 0.7rem;
+}
   .uploader-file {
     position: relative;
-    height: 49px;
-    line-height: 49px;
+    height: 5rem;
+    /* line-height:5rem; */
     overflow: hidden;
     border-bottom: 1px solid #cdcdcd;
   }
+
   .uploader-file[status="waiting"] .uploader-file-pause,
   .uploader-file[status="uploading"] .uploader-file-pause {
     display: block;
   }
+
   .uploader-file[status="paused"] .uploader-file-resume {
     display: block;
   }
+
   .uploader-file[status="error"] .uploader-file-retry {
     display: block;
   }
+
   .uploader-file[status="success"] .uploader-file-remove {
     display: none;
   }
+
   .uploader-file[status="error"] .uploader-file-progress {
     background: #ffe0e0;
   }
+
   .uploader-file-progress {
     position: absolute;
     width: 100%;
@@ -335,31 +392,54 @@
     background: #e2eeff;
     transform: translateX(-100%);
   }
+
   .uploader-file-progressing {
     transition: all .4s linear;
   }
+
   .uploader-file-info {
     position: relative;
     z-index: 1;
     height: 100%;
     overflow: hidden;
   }
+  .file-content{
+        width: 100%;
+           height: 2.5rem;
+
+           line-height: 2.5rem;
+           position: relative;
+  }
+  .file-name-body{
+  height: 2.5rem;
+
+           line-height: 2.5rem;
+                      position: relative;
+  }
+
   .uploader-file-info:hover {
     background-color: rgba(240, 240, 240, 0.2);
   }
+
   .uploader-file-info i,
   .uploader-file-info em {
     font-style: normal;
   }
+
   .uploader-file-name,
-  .uploader-file-size,
-  .uploader-file-meta,
-  .uploader-file-status,
-  .uploader-file-actions {
-    float: left;
+  .uploader-file-size{
+ float: left;
     position: relative;
     height: 100%;
   }
+  .uploader-file-meta,
+  .uploader-file-status,
+  .uploader-file-actions {
+    float: right;
+    position: relative;
+    height: 100%;
+  }
+
   .uploader-file-name {
     width: 45%;
     overflow: hidden;
@@ -370,11 +450,12 @@
   .uploader-file-icon {
     width: 24px;
     height: 24px;
-    display: inline-block;
+    /* display: inline-block;
     vertical-align: top;
     margin-top: 13px;
-    margin-right: 8px;
+    margin-right: 8px; */
   }
+
   .uploader-file-icon::before {
     content: "📃";
     display: block;
@@ -383,57 +464,72 @@
     line-height: 1;
     text-indent: 0;
   }
+
   .uploader-file-icon[icon="folder"]::before {
     content: "📂";
   }
+
   .uploader-file-icon[icon="image"]::before {
     content: "📊";
   }
+
   .uploader-file-icon[icon="video"]::before {
     content: "📹";
   }
+
   .uploader-file-icon[icon="audio"]::before {
     content: "🎵";
   }
+
   .uploader-file-icon[icon="document"]::before {
     content: "📋";
   }
+
   .uploader-file-size {
-    width: 13%;
+    width: 20%;
     text-indent: 10px;
   }
+
   .uploader-file-meta {
     width: 8%;
   }
+
   .uploader-file-status {
     width: 24%;
     text-indent: 20px;
   }
+
   .uploader-file-actions {
     width: 10%;
   }
+
   .uploader-file-actions > span {
     display: none;
     float: left;
     width: 16px;
     height: 16px;
-    margin-top: 16px;
+    margin-top: 10px;
     margin-right: 10px;
     cursor: pointer;
     background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAABkCAYAAAD0ZHJ6AAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAAAJcEhZcwAACxMAAAsTAQCanBgAAARkSURBVGje7ZnfS1NRHMAH4ptPkvQSuAdBkCxD8FUQJMEULUgzy1KyyPVQ4JMiiP4Bvg6EwUQQfMmwhwRDshwaKUjDVCgoSdDNHkzTJZ6+Z37Purve8+PeTb2TM/ggu+ew89l33x8H9BBCPG7GowXTJej3+wnDvEm0JuLC04+EYWftVAUv+fiCvDUdQR1BHUEdQR3BTIygvixoQS14XgTtthLVdpNWwXRLqvQ724LplFRtyrYF0yVpFLQrKRVMh6RZ0I6kkmCqklaCqpKZH0FX56Crq9jVfdDVk0RfFrSgFsxkQVmLcdKCVrKySCrryhPEyYShhzOcrFtG0EoilfHHk1CRU5rF6ZjNZhlVOW6RnMSVyyilKies4pO41diVy8wIujoHXV3FGdMHXTtJKLFYTLhZtq4vC1rwXApCZTIqgR6g1PBMCO9DL3bMMSqBHqDU8EyISDAHiGKvWwcCQG2KgjlAFCDAOhAAap0K5gKLphk8mqJgLrCIgoxRJ4J5wKpJ7gAoMkn5EBXBPGDVJHcAFJmkfIhQcAql1oBpTvTol9gG9pm4RHAKpdaAaU706JfYBvaZuJVgPQrt4sFlnOh5MC/p3lmJYD0K7eLBZZzoeTAv6d5ZnuAYHjpgEOnk5F0ufhG6v1ggOIaHDhhEOjl5l4tfhO4vthLcwAMrFNvLJO5vEwhu4IEViu1lEve3WQmyoihQFBzG/V0CQVYUBYqCw7i/SxTBcpsRbFeIYLnNCLZbCY5b5KAnxRwct8hBj9McZFVMW0ihRNBuFdMWUigRlFaxuQ9WWYjRMTiIe5z0wSoLMToGB3GPsA9aTZIJoB+nRgBnM1tzOkkmgH6cGgGczWzNpzqLx3n/aULJJgezeNw07oxQySbVywKjBOgFRnDs+VEsx8FlgVEC9AIjOPb8KJYjvSzoG7UW1IJaUAtqQS14toLNM5fN5APdwBJA8G83Pk/aK/rgzVvXzeQD3cASQPBvNz5P2ssTzAaGUIrHEO6zI5gNDKEUjyHcxxWkh4Ylcowwk1QQpIeGJXKMMJO0EgwqyjGCioJBJvDrxRMSuVOTJEXfbz1/bHwWtBL0yoQehK6RucgE+bGzanzulQh6E3IgQV+xpc8kcrfuSO7eTfJ3ZYmQw0Oy9azVKOk1C/bJ5D5F38YPeLfx0rjWJxHsS0SqsSYuxySjj5qO5Oj7xQWy2VBtFOwzCy6ryH3YfE3uh64Y1xckgstJPydEjkkeHv07Iy4Xaao15+KCWTBx6M/db+T9xivSErqaJDdzXI6yLRE8Vgg0coex/SPJvT0SbWu0KpZtbgSpCH3NRt7I5OxHkObc6heU+/M/J5vrpBFM5GBLqCQux14COXs5CNXK5OjPGm1tSMrJSOMNYQ4mVTGV/L6zTL7+DovkbFUxbSW0Wo05l8hJWsU+cRWfSh+Mt5Lb1ck/J1TvVsdDaR/MiEni+llsdZuZp62EViu+96bpNjNPWwmtVnzvFd5m9IVVC54x/wA7gNvqFG9vXQAAAABJRU5ErkJggg==") no-repeat 0 0;
   }
+
   .uploader-file-actions > span:hover {
     background-position-x: -21px;
   }
-  .uploader-file-actions .uploader-file-pause {
+
+   .uploader-file-pause {
     background-position-y: 0;
   }
-  .uploader-file-actions .uploader-file-resume {
+
+   .uploader-file-resume {
     background-position-y: -17px;
   }
+
   .uploader-file-actions .uploader-file-retry {
     background-position-y: -53px;
   }
+
   .uploader-file-actions .uploader-file-remove {
     display: block;
     background-position-y: -34px;
