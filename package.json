@@ -1,6 +1,6 @@
 {
   "name": "vue-simple-uploader-app",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "A Vue.js upload component powered by simple-uploader.js",
   "main": "dist/vue-uploader.js",
   "repository": {

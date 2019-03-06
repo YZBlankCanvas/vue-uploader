@@ -28,8 +28,8 @@
           <i class="uploader-file-icon" :icon="fileCategory"></i>
         </div>
          <div class="li-icon">
-          <span @click="pause" v-show="showPauseOrResume">暂停</span>
-          <span @click="resume" v-show="!showPauseOrResume">开始</span>
+          <span @click="pause" v-show="showPauseOrResume">pause</span>
+          <span @click="resume" v-show="!showPauseOrResume">resume</span>
         </div>
         <div class="li-content">
           <div class="content-top">
