@@ -24,20 +24,20 @@
       :file-category="fileCategory"
     >
       <div class="upload-file-body">
-        <div class="li-img">
+        <div class="upload-li-img">
           <i class="uploader-file-icon" :icon="fileCategory"></i>
         </div>
-         <div class="li-icon">
+         <div class="upload-li-icon">
           <span @click="pause" v-show="showPauseOrResume">pause</span>
           <span @click="resume" v-show="!showPauseOrResume">resume</span>
         </div>
-        <div class="li-content">
-          <div class="content-top">
-            <span class="span-M">{{file.name}}</span>
+        <div class="upload-li-content">
+          <div class="upload-content-top">
+            <span class="upload-span-M">{{file.name}}</span>
           </div>
-          <div class="content-bottom">
-            <span class="span-S">{{formatedCompletedSize}}/{{formatedSize}}</span>
-            <span class="device-space">{{formatedAverageSpeed}}</span>
+          <div class="upload-content-bottom">
+            <span class="upload-span-S">{{formatedCompletedSize}}/{{formatedSize}}</span>
+            <span class="upload-device-space">{{formatedAverageSpeed}}</span>
           </div>
         </div>
        
@@ -324,7 +324,7 @@
   width:100%;
   height: 5rem;
 }
-.li-img {
+.upload-li-img {
   float: left;
   height: 100%;
   padding-top: 2rem;
@@ -334,26 +334,26 @@
   -webkit-box-sizing: border-box; 
 }
 
-.li-content {
+.upload-li-content {
   height: 100%;
   line-height: 2.5rem;
   margin-left: 2.7rem;
   margin-right: 2.7rem;
 }
-.li-icon {
+.upload-li-icon {
   float: right;
   height: 100%;
   line-height: 5rem;
   width: 2.7rem;
   text-align: center;
 }
-.span-S {
+.upload-span-S {
   display: -moz-inline-box;
   display: inline-block;
   font-size: 0.7rem;
   width: 7rem;
 }
-.device-space {
+.upload-device-space {
   font-size: 0.7rem;
 }
   .uploader-file {
