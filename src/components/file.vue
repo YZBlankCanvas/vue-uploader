@@ -330,8 +330,8 @@
   padding-top: 2rem;
   width: 2.7rem;
   box-sizing: border-box;
-  -moz-box-sizing: border-box; /* Firefox */
-  -webkit-box-sizing: border-box; /* Safari */
+  -moz-box-sizing: border-box; 
+  -webkit-box-sizing: border-box; 
 }
 
 .li-content {
@@ -359,7 +359,6 @@
   .uploader-file {
     position: relative;
     height: 5rem;
-    /* line-height:5rem; */
     overflow: hidden;
     border-bottom: 1px solid #cdcdcd;
   }
